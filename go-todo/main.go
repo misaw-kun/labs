@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
-	"strings"
+
+	"github.com/manifoldco/promptui"
 )
 
 type Task struct {
@@ -21,25 +21,43 @@ const filename = "tasks.json"
 // var completed = make(map[int]bool)
 
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Println("Usage: go run main.go [add/list/done]")
-		return
+	// if len(os.Args) < 2 {
+	// 	fmt.Println("Usage: go run main.go [add/list/done]")
+	// 	return
+	// }
+
+	// tasks := loadTasks()
+
+	for {
+		action := selectAction()
+		tasks := loadTasks()
+
+		switch action {
+		case "Add Task":
+			addTask(tasks)
+		case "List Tasks":
+			listTasks(tasks)
+		case "Mark Task Done":
+			markDone(tasks)
+		case "Delete Task":
+			deleteTask(tasks)
+		case "Exit":
+			fmt.Println("Goodbye!")
+			return
+		default:
+			fmt.Println("Unknown command. Use add/list/done.")
+		}
+	}
+}
+
+func selectAction() string {
+	prompt := promptui.Select{
+		Label: "Choose an action",
+		Items: []string{"Add Task", "List Tasks", "Mark Task Done", "Delete Task", "Exit"},
 	}
 
-	tasks := loadTasks()
-
-	switch os.Args[1] {
-	case "add":
-		addTask(os.Args[2:], tasks)
-	case "list":
-		listTasks(tasks)
-	case "done":
-		markDone(os.Args[2:], tasks)
-	case "delete":
-		deleteTask(os.Args[2:], tasks)
-	default:
-		fmt.Println("Unknown command. Use add/list/done.")
-	}
+	_, result, _ := prompt.Run()
+	return result
 }
 
 func loadTasks() []Task {
@@ -86,13 +104,23 @@ func saveTasks(tasks []Task) {
 	os.WriteFile(filename, data, 0644)
 }
 
-func addTask(args []string, tasks []Task) {
-	if len(args) == 0 {
-		fmt.Println("Please provide a task.")
+func addTask(tasks []Task) {
+	// if len(args) == 0 {
+	// 	fmt.Println("Please provide a task.")
+	// 	return
+	// }
+
+	prompt := promptui.Prompt{
+		Label: "Enter Task",
+	}
+	description, _ := prompt.Run()
+
+	if description == "" {
+		fmt.Println("Description cannot be empty.")
 		return
 	}
 	// task := args[0]
-	task := Task{Description: strings.Join(args, " "), Done: false}
+	task := Task{Description: description, Done: false}
 	tasks = append(tasks, task)
 	saveTasks(tasks)
 	fmt.Println("Added task: ", task.Description)
@@ -113,37 +141,68 @@ func listTasks(tasks []Task) {
 	}
 }
 
-func markDone(args []string, tasks []Task) {
-	if len(args) == 0 {
-		fmt.Println("Please provide a task number.")
+func markDone(tasks []Task) {
+	// if len(args) == 0 {
+	// 	fmt.Println("Please provide a task number.")
+	// 	return
+	// }
+	if len(tasks) == 0 {
+		fmt.Println("No tasks found")
 		return
 	}
-	index, err := strconv.Atoi(args[0])
+	// index, err := strconv.Atoi(args[0])
 
-	if err != nil || index < 0 || index >= len(tasks) {
-		fmt.Println("Invalid task number.")
-		return
+	prompt := promptui.Select{
+		Label: "Select task to mark as done",
+		Items: getTaskDescriptions(tasks),
 	}
+
+	// if err != nil || index < 0 || index >= len(tasks) {
+	// 	fmt.Println("Invalid task number.")
+	// 	return
+	// }
+	index, _, _ := prompt.Run()
+
 	tasks[index].Done = true
 	saveTasks(tasks)
 	fmt.Println("Marked task as done:", tasks[index].Description)
 }
 
-func deleteTask(args []string, tasks []Task) {
-	if len(args) == 0 {
-		fmt.Println("Please provide a task number to delete.")
+func deleteTask(tasks []Task) {
+	if len(tasks) == 0 {
+		fmt.Println("No tasks to delete.")
 		return
 	}
 
-	index, err := strconv.Atoi(args[0])
-	if err != nil || index < 0 || index >= len(tasks) {
-		fmt.Println("Invalid task number.")
-		return
+	// index, err := strconv.Atoi(args[0])
+	// if err != nil || index < 0 || index >= len(tasks) {
+	// 	fmt.Println("Invalid task number.")
+	// 	return
+	// }
+
+	prompt := promptui.Select{
+		Label: "Select task to delete",
+		Items: getTaskDescriptions(tasks),
 	}
+	index, _, _ := prompt.Run()
 
 	task := tasks[index]
 	tasks = append(tasks[:index], tasks[index+1:]...)
 	saveTasks(tasks)
 
 	fmt.Println("Deleted task:", task.Description)
+}
+
+func getTaskDescriptions(tasks []Task) []string {
+	var descriptions []string
+
+	for _, task := range tasks {
+		status := "[ ]"
+		if task.Done {
+			status = "[x]"
+		}
+		descriptions = append(descriptions, fmt.Sprintf("%s %s", status, task.Description))
+	}
+
+	return descriptions
 }
