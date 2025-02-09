@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 
 	"github.com/manifoldco/promptui"
 )
@@ -12,6 +13,13 @@ import (
 type Task struct {
 	Description string `json:"description"`
 	Done        bool   `json:"done"`
+	Priority    string `json:"priority"`
+}
+
+var priorityOrder = map[string]int{
+	"High":   1,
+	"Medium": 2,
+	"Low":    3,
 }
 
 // const filename = "tasks.txt"
@@ -110,20 +118,27 @@ func addTask(tasks []Task) {
 	// 	return
 	// }
 
-	prompt := promptui.Prompt{
+	taskPrompt := promptui.Prompt{
 		Label: "Enter Task",
 	}
-	description, _ := prompt.Run()
-
+	description, _ := taskPrompt.Run()
 	if description == "" {
 		fmt.Println("Description cannot be empty.")
 		return
 	}
 	// task := args[0]
-	task := Task{Description: description, Done: false}
+
+	priorityPrompt := promptui.Select{
+		Label: "Select Priority",
+		Items: []string{"High", "Medium", "Low"},
+	}
+
+	_, priority, _ := priorityPrompt.Run()
+
+	task := Task{Description: description, Done: false, Priority: priority}
 	tasks = append(tasks, task)
 	saveTasks(tasks)
-	fmt.Println("Added task: ", task.Description)
+	fmt.Println("Added task: ", task.Description, "with priority:", priority)
 }
 
 func listTasks(tasks []Task) {
@@ -131,13 +146,16 @@ func listTasks(tasks []Task) {
 		fmt.Println("No tasks found")
 		return
 	}
+
+	sortTasksByPriority(tasks)
+
 	fmt.Println("Your tasks:")
 	for i, task := range tasks {
 		status := "[ ]"
 		if task.Done {
 			status = "[x]"
 		}
-		fmt.Printf("%d. %s %s\n", i, status, task.Description)
+		fmt.Printf("%d. %s (%s) %s\n", i, status, task.Priority, task.Description)
 	}
 }
 
@@ -205,4 +223,10 @@ func getTaskDescriptions(tasks []Task) []string {
 	}
 
 	return descriptions
+}
+
+func sortTasksByPriority(tasks []Task) {
+	sort.SliceStable(tasks, func(i, j int) bool {
+		return priorityOrder[tasks[i].Priority] < priorityOrder[tasks[j].Priority]
+	})
 }

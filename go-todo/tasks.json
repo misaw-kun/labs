@@ -1,6 +1,12 @@
 [
   {
-    "description": "finish the SRS doc for office hub",
-    "done": false
+    "description": "learn go",
+    "done": true,
+    "priority": "Medium"
+  },
+  {
+    "description": "learn concurrency",
+    "done": false,
+    "priority": "High"
   }
 ]
