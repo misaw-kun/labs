@@ -1,7 +1,8 @@
 package main
 
 import (
-	"bufio"
+	// "bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -9,11 +10,12 @@ import (
 )
 
 type Task struct {
-	Description string
-	Done        bool
+	Description string `json:"description"`
+	Done        bool   `json:"done"`
 }
 
-const filename = "tasks.txt"
+// const filename = "tasks.txt"
+const filename = "tasks.json"
 
 // var tasks []string
 // var completed = make(map[int]bool)
@@ -41,39 +43,47 @@ func main() {
 }
 
 func loadTasks() []Task {
-	file, err := os.Open(filename)
+	// file, err := os.Open(filename)
+	file, err := os.ReadFile(filename)
 	if err != nil {
 		return []Task{}
 	}
-	defer file.Close()
+	// defer file.Close()
 
 	var tasks []Task
-	scanner := bufio.NewScanner(file)
 
-	for scanner.Scan() {
-		line := scanner.Text()
-		parts := strings.SplitN(line, ",", 2)
-		if len(parts) != 2 {
-			continue
-		}
-		done, _ := strconv.ParseBool(parts[0])
-		tasks = append(tasks, Task{Description: parts[1], Done: done})
+	// .txt file based tasks
+	// scanner := bufio.NewScanner(file)
+	// for scanner.Scan() {
+	// 	line := scanner.Text()
+	// 	parts := strings.SplitN(line, ",", 2)
+	// 	if len(parts) != 2 {
+	// 		continue
+	// 	}
+	// 	done, _ := strconv.ParseBool(parts[0])
+	// 	tasks = append(tasks, Task{Description: parts[1], Done: done})
+	// }
+
+	if err := json.Unmarshal(file, &tasks); err != nil {
+		fmt.Println("Error reading tasks:", err)
+		return []Task{}
 	}
-
 	return tasks
 }
 
 func saveTasks(tasks []Task) {
-	file, err := os.Create(filename)
+	// file, err := os.Create(filename)
+	data, err := json.MarshalIndent(tasks, "", "  ") // pretty printing json
 	if err != nil {
 		fmt.Println("Error saving tasks:", err)
 		return
 	}
-	defer file.Close()
+	// defer file.Close()
+	// for _, task := range tasks {
+	// 	fmt.Fprintf(file, "%t,%s\n", task.Done, task.Description)
+	// }
 
-	for _, task := range tasks {
-		fmt.Fprintf(file, "%t,%s\n", task.Done, task.Description)
-	}
+	os.WriteFile(filename, data, 0644)
 }
 
 func addTask(args []string, tasks []Task) {
